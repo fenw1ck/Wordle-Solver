@@ -36,6 +36,8 @@ button.x{background:transparent;color:var(--mute);padding:4px 8px;font-size:15px
 .big{font:700 24px Georgia,serif;text-align:center;padding:8px}
 .on{background:var(--acc)!important;color:var(--accink)!important;border-color:var(--acc)!important}
 .help h3{font:700 16px Georgia,serif;margin:14px 0 4px}.help p{margin:4px 0;font-size:15px}.help dt{font-weight:700;margin-top:8px}.help dd{margin:2px 0 0;color:var(--mute);font-size:14px}
+.t{position:relative}.b{position:absolute;right:5px;bottom:2px;font:600 11px system-ui,sans-serif;text-transform:lowercase;opacity:.85}
+.kb{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}.kc{width:27px;height:32px;display:grid;place-items:center;border-radius:6px;font:700 14px system-ui,sans-serif;background:var(--tile);border:1px solid var(--line);color:var(--ink);text-transform:uppercase}.kc.c0{background:var(--x);border-color:var(--x);color:#fff}.kc.c1{background:var(--y);border-color:var(--y);color:#fff}.kc.c2{background:var(--g);border-color:var(--g);color:#fff}
 .sw{display:flex;align-items:center;gap:8px;font-size:14px}
 </style>
 </head>
@@ -58,9 +60,9 @@ button.x{background:transparent;color:var(--mute);padding:4px 8px;font-size:15px
 <div id="out"></div>
 <p class="k" id="foot"></p>
 </div>
-<div id="play" style="display:none"><div class="card"><h2>Play a random word</h2><div class="k" id="pst">I’ve picked a secret word. You have 6 guesses.</div><div id="prows"></div>
+<div id="play" style="display:none"><div class="card"><h2>Play a random word</h2><div class="k" id="pst">I’ve picked a secret word. You have 6 guesses.</div><div id="prows"></div><div class="kb" id="pkb"></div>
 <input type="text" id="pin" maxlength="5" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Your guess"><div class="msg" id="pmsg"></div>
-<div class="row"><button id="pgo" style="flex:1">Guess</button><button class="s" id="phint">Hint</button><button class="s" id="pnew">New game</button></div></div></div>
+<div class="row"><button id="pgo" style="flex:1">Guess</button><button class="s" id="phint">Hint</button><button class="s" id="pgive">Give up</button><button class="s" id="pshare" style="display:none">Copy result</button><button class="s" id="pnew">New game</button></div></div></div>
 <div id="words" style="display:none"><div class="card"><h2>Add a word</h2><div class="row"><input type="text" id="win" maxlength="5" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="e.g. aunty"><button id="wadd">Add</button></div><div class="msg" id="wmsg"></div><p class="k">Use this for words Wordle accepts that I’m missing. Added words count as likely answers.</p></div>
 <div class="card"><h2>Words I added</h2><div id="wlist"></div></div><div class="card"><h2>Banned words</h2><div id="blist"></div></div></div>
 <div id="help" style="display:none"><div class="card help"><h2>How it works</h2>
@@ -72,7 +74,7 @@ button.x{background:transparent;color:var(--mute);padding:4px 8px;font-size:15px
 <dt>The difference</dt><dd>The test word is the best split using everything known. The elimination word is simply the best use of untested letters.</dd>
 <dt>Best word pairs</dt><dd>Two guesses that, played together, are expected to leave the fewest words.</dd>
 <dt>Letters</dt><dd>Green letters are in the right spot. Wrong-spot letters are in the word. Ruled out letters are grey with no other copy found, and repeats are handled as Wordle does.</dd></dl>
-<h3>Other features</h3><p><b>Hard mode</b> only recommends words that reuse every hint. <b>✕</b> bans a word Wordle rejected. <b>Words</b> adds a missing word or restores a banned one. <b>Play</b> gives you a random secret word, with a Hint button.</p>
+<h3>Other features</h3><p><b>Hard mode</b> only recommends words that reuse every hint. <b>✕</b> bans a word Wordle rejected. <b>Words</b> adds a missing word or restores a banned one. <b>Play</b> gives you a random secret word. Each guess shows its colours, plus a g, y or x in the corner and a letter tracker beneath. There’s a Hint button, a Give up button and a Copy result button.</p>
 <h3>Good to know</h3><p>Words I don’t know show a warning but still work. Bans and added words are saved per browser. The starting-word list is precomputed for the built-in dictionary.</p></div></div>
 </main>
 <script>
@@ -116,10 +118,10 @@ for(let a=0;a<top.length;a++)for(let b=a+1;b<top.length;b++){const m=new Map(),p
 o.pairs=res.sort((a,b)=>a[0]-b[0]).slice(0,3)}
 return o}
 const $=id=>document.getElementById(id),esc=s=>s.toUpperCase();
-function tileRow(g,c,cls){return'<div class="tiles">'+[...g].map((ch,i)=>`<div class="t c${c[i]} f">${ch}</div>`).join("")+"</div>"}
+function tileRow(g,c,cls){return'<div class="tiles">'+[...g].map((ch,i)=>`<div class="t c${c[i]} f">${ch}<span class="b">${"xyg"[c[i]]}</span></div>`).join("")+"</div>"}
 function renderHist(){$("hist").innerHTML=rounds.map((r,i)=>`<div class="card hist"><div class="h"><h2>Round ${i+1}</h2><button class="s" data-e="${i}">Edit</button></div>${tileRow(r.g,r.c)}</div>`).join("")}
 function renderEntry(){const w=$("inp").value;$("rl").textContent="Round "+(rounds.length+1);
-$("tiles").innerHTML=[0,1,2,3,4].map(i=>`<button class="t c${cols[i]}${w[i]?" f":""}" data-t="${i}" aria-label="letter ${i+1}">${w[i]||""}</button>`).join("")}
+$("tiles").innerHTML=[0,1,2,3,4].map(i=>`<button class="t c${cols[i]}${w[i]?" f":""}" data-t="${i}" aria-label="letter ${i+1}">${w[i]||""}${w[i]?`<span class="b">${"xyg"[cols[i]]}</span>`:""}</button>`).join("")}
 function words(list,max){return list.slice(0,max).map(w=>`<span class="w${WT[w]<1?" l":""}" data-u="${w}">${w}</span>`).join("")}
 function render(){build();renderHist();renderEntry();const out=$("out");
 const f=filt(rounds);if(f.idx!==null){rounds=rounds.slice(0,f.idx);save();return render()}
@@ -161,16 +163,20 @@ function colsOf(c){const r=[];let x=c;for(let i=4;i>=0;i--){r[i]=x%3;x=Math.floo
 function show(t){for(const id of["solve","play","words","help"])$(id).style.display=id===t?"":"none";document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));if(t==="play"&&!P.secret)newGame();if(t==="words")renderWords()}
 function addWord(w){w=(w||"").toLowerCase();if(!/^[a-z]{5}$/.test(w))return false;added.add(w);banned.delete(w);save();render();return true}
 function renderWords(){$("wlist").innerHTML=[...added].map(w=>`<span class="w">${w} <button class="x" data-r="${w}">✕</button></span>`).join("")||'<span class="k">None yet.</span>';$("blist").innerHTML=[...banned].map(w=>`<span class="w l">${w} <button class="x" data-ub="${w}">restore</button></span>`).join("")||'<span class="k">None.</span>'}
-function newGame(){const pool=A.filter(w=>!banned.has(w));P={secret:pool[Math.floor(Math.random()*pool.length)],rows:[],done:false};$("pmsg").textContent="";renderPlay()}
-function renderPlay(){const won=P.rows.length&&P.rows[P.rows.length-1].p===242;P.done=won||P.rows.length>=6;
-$("prows").innerHTML=P.rows.map(r=>tileRow(r.g,colsOf(r.p))).join("");
-$("pst").textContent=won?"🎉 Solved in "+P.rows.length+"!":P.done?"Out of guesses. The word was "+P.secret.toUpperCase()+".":"Guess "+(P.rows.length+1)+" of 6";
-$("pin").style.display=$("pgo").style.display=$("phint").style.display=P.done?"none":""}
+function newGame(){const pool=A.filter(w=>!banned.has(w));P={secret:pool[Math.floor(Math.random()*pool.length)],rows:[],done:false,counted:false,gave:false};$("pmsg").textContent="";renderPlay()}
+function stat(w){try{const s=JSON.parse(localStorage.getItem("ps")||'{"p":0,"w":0}');if(w!==undefined){s.p++;if(w)s.w++;localStorage.setItem("ps",JSON.stringify(s))}return s}catch(e){return{p:0,w:0}}}
+function renderPlay(){const won=!!(P.rows.length&&P.rows[P.rows.length-1].p===242);P.done=P.gave||won||P.rows.length>=6;
+if(P.done&&!P.counted){P.counted=true;stat(won)}
+$("prows").innerHTML=P.rows.map(r=>{const c=colsOf(r.p);return tileRow(r.g,c)+`<div class="k" style="margin:-4px 0 8px">${c.map(x=>"xyg"[x]).join(" ")}</div>`}).join("");
+const best={};P.rows.forEach(r=>colsOf(r.p).forEach((x,i)=>{best[r.g[i]]=Math.max(best[r.g[i]]===undefined?-1:best[r.g[i]],x)}));
+$("pkb").innerHTML="abcdefghijklmnopqrstuvwxyz".split("").map(l=>`<span class="kc${best[l]!==undefined?" c"+best[l]:""}">${l}</span>`).join("");
+const st=stat();$("pst").textContent=(won?"🎉 Solved in "+P.rows.length+"!":P.done?"The word was "+P.secret.toUpperCase()+".":"Guess "+(P.rows.length+1)+" of 6")+"  ·  Won "+st.w+" of "+st.p;
+$("pin").style.display=$("pgo").style.display=$("phint").style.display=$("pgive").style.display=P.done?"none":"";$("pshare").style.display=P.done&&P.rows.length?"":"none"}
 function playGuess(){const g=$("pin").value.toLowerCase();if(g.length!==5)return $("pmsg").textContent="Enter a 5-letter word.";if(!WS.has(g))return $("pmsg").textContent="Not in my word list. Add it on the Words tab if it’s a real word.";
 P.rows.push({g,p:fb(g,P.secret)});$("pin").value="";$("pmsg").textContent="";renderPlay()}
 function hint(){if(!P.rows.length)return $("pmsg").textContent="Try "+OPEN[0][0].toUpperCase()+" to start.";const sv=rounds;rounds=P.rows.map(r=>({g:r.g,c:colsOf(r.p)}));const f=filt(rounds);const a=f.c.length?analyze(f.c):null;rounds=sv;
 $("pmsg").textContent=a?f.c.length+" word"+(f.c.length>1?"s":"")+" still fit. A good next guess: "+a.best.toUpperCase():"No words fit."}
-$("pgo").onclick=playGuess;$("pnew").onclick=newGame;$("phint").onclick=hint;$("pin").addEventListener("input",e=>{e.target.value=e.target.value.toLowerCase().replace(/[^a-z]/g,"")});
+$("pgo").onclick=playGuess;$("pnew").onclick=newGame;$("pgive").onclick=()=>{P.gave=true;renderPlay()};$("pshare").onclick=()=>{const w=P.rows[P.rows.length-1].p===242,t="Wordle Solver play "+(w?P.rows.length:"X")+"/6\n"+P.rows.map(r=>colsOf(r.p).map(x=>["⬛","🟨","🟩"][x]).join("")).join("\n");try{navigator.clipboard.writeText(t);$("pmsg").textContent="Copied to your clipboard."}catch(e){$("pmsg").textContent=t}};$("phint").onclick=hint;$("pin").addEventListener("input",e=>{e.target.value=e.target.value.toLowerCase().replace(/[^a-z]/g,"")});
 $("wadd").onclick=()=>{const w=$("win").value.toLowerCase();if(!/^[a-z]{5}$/.test(w))return $("wmsg").textContent="Enter exactly 5 letters.";$("wmsg").textContent=WS.has(w)?w.toUpperCase()+" is already in the dictionary.":"Added "+w.toUpperCase()+".";if(!WS.has(w))addWord(w);$("win").value="";renderWords()};
 render();show("solve");
 </script>
